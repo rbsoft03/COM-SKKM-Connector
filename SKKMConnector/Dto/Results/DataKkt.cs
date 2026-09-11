@@ -1,0 +1,41 @@
+using System.Text.Json.Serialization;
+using System.Runtime.InteropServices;
+
+namespace RBSoftSkkm
+{
+    [ComVisible(true)]
+    [Guid("BF1907A9-F415-43EF-8BD3-8D8F5C525B48")]
+    [ClassInterface(ClassInterfaceType.AutoDispatch)]
+    public class DataKkt
+    {
+        /// <summary>
+        /// Версия сервера ККМ.
+        /// </summary>
+        [JsonPropertyName("ServerVersion")]
+        public string? ServerVersion { get; set; }
+
+        /// <summary>
+        /// Описание фискального накопителя 
+        /// </summary>
+        [JsonPropertyName("Fn")]
+        public Fn? Fn { get; set; }
+
+        /// <summary>
+        /// Описание ККМ
+        /// </summary>
+        [JsonPropertyName("Device")]
+        public Device? Device { get; set; }
+
+        /// <summary>
+        /// Описание драйвера ККМ 
+        /// </summary>
+        [JsonPropertyName("Driver")]
+        public Driver? Driver { get; set; }
+
+        /// <summary>
+        /// Состояние ККТ 
+        /// </summary>
+        [JsonPropertyName("Status")]
+        public KktStatus? Status { get; set; }
+    }
+}

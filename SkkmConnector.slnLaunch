@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "Connector",
+    "Projects": [
+      {
+        "Path": "SkkmConnector\\SkkmConnector.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

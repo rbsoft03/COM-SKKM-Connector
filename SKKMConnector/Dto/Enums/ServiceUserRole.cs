@@ -1,0 +1,25 @@
+using System.Runtime.InteropServices;
+namespace RBSoftSkkm;
+
+/// <summary>
+/// Роль пользователя сервера ККМ:
+/// <para>
+/// Administrator - Администратор
+/// </para>
+/// <para>
+/// Employee - Сотрудник
+/// </para>
+/// </summary>
+[ComVisible(true)]
+public enum ServiceUserRole
+{
+    /// <summary>
+    /// Администратор.
+    /// </summary>
+    Administrator = 0,
+
+    /// <summary>
+    /// Сотрудник.
+    /// </summary>
+    Employee = 1,
+}
