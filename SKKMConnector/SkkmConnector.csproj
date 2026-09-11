@@ -21,7 +21,7 @@
 
     <!-- Строгое имя — обязательно для установки в GAC. -->
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>utils\key.snk</AssemblyOriginatorKeyFile>
 
     <!-- Binding redirects обязательны — System.Text.Json тянет цепочку зависимостей,
          без redirect'ов активация через COM падает в статическом конструкторе. -->
@@ -35,28 +35,31 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="gacutil.exe">
+    <!-- Вспомогательные файлы лежат в utils\ (исходники), но при сборке кладутся
+         плоско в output-папку рядом с reg.bat/unreg.bat — тем же путём, каким их
+         ожидает найти reg.bat через "%~dp0...". -->
+    <None Include="utils\gacutil.exe" Link="gacutil.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="gacutlrc.dll">
+    <None Include="utils\gacutlrc.dll" Link="gacutlrc.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="gacutil.exe.config">
+    <None Include="utils\gacutil.exe.config" Link="gacutil.exe.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="reg.bat">
+    <None Include="utils\reg.bat" Link="reg.bat">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="unreg.bat">
+    <None Include="utils\unreg.bat" Link="unreg.bat">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="policy.8.0.System.Text.Json.dll">
+    <None Include="utils\policy.8.0.System.Text.Json.dll" Link="policy.8.0.System.Text.Json.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="fix-binding-redirects.ps1">
+    <None Include="utils\fix-binding-redirects.ps1" Link="fix-binding-redirects.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="README.md">
+    <None Include="utils\InstallReadme.md" Link="InstallReadme.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
