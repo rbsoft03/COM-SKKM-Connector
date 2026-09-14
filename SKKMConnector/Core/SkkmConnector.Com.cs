@@ -321,6 +321,15 @@ public sealed partial class SkkmConnector
     /// <summary>Синхронная COM-версия <see cref="RepairMarking"/>.</summary>
     public void RunRepairMarking() => RepairMarking().GetAwaiter().GetResult();
 
+    /// <summary>Синхронная COM-версия <see cref="CheckMarkingTrueApiDirect"/>.</summary>
+    public void RunCheckMarkingTrueApiDirect() => CheckMarkingTrueApiDirect().GetAwaiter().GetResult();
+
+    /// <summary>Синхронная COM-версия <see cref="CheckMarkingTsPiotDirect"/>.</summary>
+    public void RunCheckMarkingTsPiotDirect() => CheckMarkingTsPiotDirect().GetAwaiter().GetResult();
+
+    /// <summary>Синхронная COM-версия <see cref="CheckMarkingLocalDirect"/>.</summary>
+    public void RunCheckMarkingLocalDirect() => CheckMarkingLocalDirect().GetAwaiter().GetResult();
+
     /// <summary>Синхронная COM-версия <see cref="Fiscalization"/>.</summary>
     public void RunFiscalization() => Fiscalization().GetAwaiter().GetResult();
 

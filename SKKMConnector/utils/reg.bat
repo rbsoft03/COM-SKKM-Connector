@@ -24,6 +24,10 @@ REM не читается, когда сборка активируется ка
 REM поэтому редирект публикуется через policy-сборку в GAC.
 "%~dp0gacutil" /i "%~dp0policy.8.0.System.Text.Json.dll"
 
+REM Прямая проверка кодов маркировки (RBSoft.MarkingVerification) — тоже строго подписаны
+"%~dp0gacutil" /i "%~dp0Newtonsoft.Json.dll"
+"%~dp0gacutil" /i "%~dp0SkkmConnector.MarkingVerification.dll"
+
 REM Теперь сама сборка
 "%~dp0gacutil" /i "%~dp0SkkmConnector.dll"
 

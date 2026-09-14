@@ -35,6 +35,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Офлайн от сервера ККМ: прямая проверка кодов маркировки (Честный Знак True API,
+         ТС ПИоТ, локальный модуль ЧЗ). NuGet-пакет из отдельного репозитория/проекта
+         C:\projects\workRBsoft\NuGetsProjects\MarkingVerification — источник пакета
+         подключён через nuget.config рядом с .sln. -->
+    <PackageReference Include="RBSoft.MarkingVerification" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Вспомогательные файлы лежат в utils\ (исходники), но при сборке кладутся
          плоско в output-папку рядом с reg.bat/unreg.bat — тем же путём, каким их
          ожидает найти reg.bat через "%~dp0...". -->
