@@ -32,4 +32,17 @@ public sealed class Vendor
     /// ИНН поставщика.
     /// </summary>
     public string? Vatin { get; set; }
+
+    /// <summary>
+    /// Добавляет телефон поставщика (можно вызвать несколько раз для нескольких номеров) —
+    /// удобный способ для COM-клиентов (1С/VBA), которым нельзя напрямую заполнить string[].
+    /// </summary>
+    public void AddPhone(string phone)
+    {
+        var old = Phones ?? Array.Empty<string>();
+        var next = new string[old.Length + 1];
+        old.CopyTo(next, 0);
+        next[old.Length] = phone;
+        Phones = next;
+    }
 }

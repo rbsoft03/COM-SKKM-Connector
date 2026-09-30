@@ -32,4 +32,7 @@ public sealed class OperationalAttribute
     /// Данные операции.
     /// </summary>
     public string? OperationData { get; set; }
+
+    /// <summary>Устанавливает идентификатор операции (см. OperationId) — обёртка для COM: свойство объявлено как nullable int (int?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetOperationId(int value) => OperationId = value;
 }

@@ -11,8 +11,6 @@ if %errorLevel% == 0 (
 "%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe" "%~dp0SkkmConnector.dll" /unregister
  
 "%~dp0gacutil" /u "SkkmConnector"
-"%~dp0gacutil" /u "SkkmConnector.MarkingVerification"
-"%~dp0gacutil" /u "Newtonsoft.Json"
 "%~dp0gacutil" /u "policy.8.0.System.Text.Json"
 "%~dp0gacutil" /u "Microsoft.Bcl.AsyncInterfaces"
 "%~dp0gacutil" /u "System.Buffers"
@@ -24,6 +22,9 @@ if %errorLevel% == 0 (
 "%~dp0gacutil" /u "System.Threading.Tasks.Extensions"
 "%~dp0gacutil" /u "System.ValueTuple"
  
+REM nopause: called from Inno Setup installer - skip pause, otherwise the hidden window hangs
+if /i "%~1"=="nopause" exit /b
+
 echo.
 echo Press any key to continue...
 pause>nul

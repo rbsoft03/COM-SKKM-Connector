@@ -64,4 +64,28 @@ public sealed class Agent
     /// ИНН оператора перевода.
     /// </summary>
     public string? MoneyTransferOperatorVatin { get; set; }
+
+    // ------------------------------------------------------------------
+    // Add-методы для COM-клиентов (1С/VBA): свойства-массивы (string[]?)
+    // нельзя удобно заполнить из COM без промежуточного SAFEARRAY — эти
+    // методы добавляют один телефон за раз и сами пересобирают массив.
+    // ------------------------------------------------------------------
+
+    /// <summary>Добавляет телефон платёжного агента (можно вызвать несколько раз для нескольких номеров).</summary>
+    public void AddPayingAgentPhone(string phone) => PayingAgentPhone = AppendPhone(PayingAgentPhone, phone);
+
+    /// <summary>Добавляет телефон оператора по приёму платежей.</summary>
+    public void AddReceivePaymentsOperatorPhone(string phone) => ReceivePaymentsOperatorPhone = AppendPhone(ReceivePaymentsOperatorPhone, phone);
+
+    /// <summary>Добавляет телефон оператора перевода.</summary>
+    public void AddMoneyTransferOperatorPhone(string phone) => MoneyTransferOperatorPhone = AppendPhone(MoneyTransferOperatorPhone, phone);
+
+    private static string[] AppendPhone(string[]? current, string phone)
+    {
+        var old = current ?? Array.Empty<string>();
+        var next = new string[old.Length + 1];
+        old.CopyTo(next, 0);
+        next[old.Length] = phone;
+        return next;
+    }
 }

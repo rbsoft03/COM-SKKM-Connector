@@ -1,14 +1,11 @@
 using System.Runtime.InteropServices;
+using System.Text.Json;
 
 namespace RBSoftSkkm;
 
 /// <summary>
 /// COM-обёртка над <see cref="SkkmConnector"/>: те же свойства и методы, что и в обычном
-/// коннекторе (имена в SkkmConnector.Api.cs не меняются — полностью совпадают с обычным
-/// .NET-коннектором). Классический COM (VBA, 1С, VBScript и т.п.) не умеет работать с
-/// Task/async напрямую, поэтому здесь добавлены синхронные версии — с приставкой Run
-/// (например, RunPrintCheck() для PrintCheck()), чтобы не совпадать по имени с
-/// исходным async-методом (Task Foo() и void Foo() в одном классе не уживаются).
+/// коннекторе (имена в SkkmConnector.Api.cs не меняются — полностью совпадают с обычным .NET-коннектором)
 /// </summary>
 [ComVisible(true)]
 [Guid("8F2E1A3B-6C4D-4A9E-9B2F-1D3E5A7C9F01")]
@@ -321,15 +318,6 @@ public sealed partial class SkkmConnector
     /// <summary>Синхронная COM-версия <see cref="RepairMarking"/>.</summary>
     public void RunRepairMarking() => RepairMarking().GetAwaiter().GetResult();
 
-    /// <summary>Синхронная COM-версия <see cref="CheckMarkingTrueApiDirect"/>.</summary>
-    public void RunCheckMarkingTrueApiDirect() => CheckMarkingTrueApiDirect().GetAwaiter().GetResult();
-
-    /// <summary>Синхронная COM-версия <see cref="CheckMarkingTsPiotDirect"/>.</summary>
-    public void RunCheckMarkingTsPiotDirect() => CheckMarkingTsPiotDirect().GetAwaiter().GetResult();
-
-    /// <summary>Синхронная COM-версия <see cref="CheckMarkingLocalDirect"/>.</summary>
-    public void RunCheckMarkingLocalDirect() => CheckMarkingLocalDirect().GetAwaiter().GetResult();
-
     /// <summary>Синхронная COM-версия <see cref="Fiscalization"/>.</summary>
     public void RunFiscalization() => Fiscalization().GetAwaiter().GetResult();
 
@@ -368,7 +356,7 @@ public sealed partial class SkkmConnector
     /// которым неудобно создавать List&lt;Position&gt; и объект FiscalLine напрямую.
     /// Необязательные параметры можно не указывать (значения по умолчанию — как в самом FiscalLine).
     /// </summary>
-    public void AddFiscalLine(
+    public FiscalLine AddFiscalLine(
         string name,
         decimal quantity,
         decimal price,
@@ -390,23 +378,154 @@ public sealed partial class SkkmConnector
             ProductCode = productCode,
         };
         Positions.Add(line);
+        return line;
     }
 
     /// <summary>Очищает список позиций чека (аналог Positions.Clear() — для COM-клиентов, у которых нет прямого доступа к .Clear() на List&lt;T&gt;).</summary>
     public void ClearPositions() => Positions.Clear();
 
+    /// <summary>
+    /// Добавляет в чек уже готовую позицию (TextLine/BarcodeLine/PictureLine/SeparatorLine),
+    /// созданную одним из фабричных методов NewTextLine()/NewBarcodeLine()/NewPictureLine()/NewSeparatorLine()
+    /// </summary>
+    public void AddPosition(Position position) => Positions.Add(position);
+
     /// <summary>Устанавливает наличную оплату — удобный метод вместо создания Payments вручную.</summary>
     public void SetCashPayment(decimal amount) => Payments = new Payments { Cash = amount };
 
-    /// <summary>Устанавливает безналичную оплату.</summary>
+    /// <summary>Устанавливает безналичную оплату (сумма — тег "Итого безналичными").</summary>
     public void SetElectronicPayment(decimal amount) => Payments = new Payments { ElectronicPayment = amount };
+
+    /// <summary>
+    /// Добавляет детальный электронный платёж (способ оплаты, идентификаторы, доп. сведения)
+    /// в список <see cref="ElectronicPayments"/> — для этого создайте объект через
+    /// NewElectronicPayment(), заполните нужные поля и передайте сюда. Это отдельная сущность
+    /// от SetElectronicPayment(amount): тот задаёт только итоговую сумму в Payments.
+    /// </summary>
+    public void AddElectronicPayment(ElectronicPayment payment) => ElectronicPayments.Add(payment);
+
+    /// <summary>
+    /// Создаёт объект оплат (Ккм.Payments либо CheckTemplateDocument.Payments) для случая, когда
+    /// нужно скомбинировать несколько видов оплаты одновременно (наличные + безналичные + аванс +
+    /// кредит + встречное предоставление) — то, что SetCashPayment/SetElectronicPayment по отдельности
+    /// не позволяют, так как каждый из них полностью заменяет Payments одним видом оплаты.
+    /// </summary>
+    public Payments NewPayments() => new Payments();
 
     /// <summary>Устанавливает данные кассира — удобный метод вместо создания Cashier вручную.</summary>
     public void SetCashier(string name, string vatin) => Cashier = new Cashier { Name = name, Vatin = vatin };
+
+    /// <summary>Устанавливает часовой пояс чека (см. enum CheckTimeZone) — обёртка для COM: свойство TimeZone объявлено как nullable enum (CheckTimeZone?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetTimeZone(int value) => TimeZone = (CheckTimeZone)value;
+
+    /// <summary>Возвращает остаток наличных в кассе (см. CashBalance) как double — обёртка для COM: .NET decimal маршалируется в COM как VT_DECIMAL, который 1С v7.7 не умеет использовать в операциях конкатенации/сложения строк ("Тип переменной не поддерживается").</summary>
+    public double GetCashBalance() => (double)CashBalance;
+
+    /// <summary>Возвращает необнуляемую сумму продаж (см. NonZeroSum) как double — обёртка для COM (см. GetCashBalance).</summary>
+    public double GetNonZeroSum() => (double)NonZeroSum;
+
+    /// <summary>Возвращает "сырой" JSON поля Result последнего ответа сервера как строку — обёртка для
+    /// COM: JsonElement не ComVisible и напрямую из 1С/VBA не читается. Пусто, если Result отсутствовал
+    /// (Undefined/Null) — например у ответов без содержательного тела.</summary>
+    public string GetLastResultJson() =>
+        LastResult.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? "" : LastResult.GetRawText();
+
+    /// <summary>Устанавливает признак агента по чеку в целом (см. enum AgentType) — обёртка для COM: свойство AgentSign объявлено как nullable enum (AgentType?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetAgentSign(int value) => AgentSign = (AgentType)value;
 
     /// <summary>Добавляет код маркировки в список для проверки (<see cref="MarkingCodes"/>) — удобный способ для COM-клиентов.</summary>
     public void AddMarkingCode(string code) => MarkingCodes.Add(code);
 
     /// <summary>Очищает список кодов маркировки для проверки (аналог MarkingCodes.Clear()).</summary>
     public void ClearMarkingCodes() => MarkingCodes.Clear();
+
+    /// <summary>Очищает список безналичных оплат (аналог ElectronicPayments.Clear() — для COM-клиентов, у которых нет прямого доступа к .Clear() на List&lt;T&gt;).</summary>
+    public void ClearElectronicPayments() => ElectronicPayments.Clear();
+    
+    /// <summary>Создаёт объект покупателя (Ккм.Customer) — заполните нужные поля и присвойте Ккм.Customer.</summary>
+    public Customer NewCustomer() => new Customer();
+
+    /// <summary>Создаёт объект платёжного агента (для FiscalLine.Agent) — заполните поля и присвойте Стр.Agent.</summary>
+    public Agent NewAgent() => new Agent();
+
+    /// <summary>Создаёт объект поставщика (для FiscalLine.Vendor) — заполните поля и присвойте Стр.Vendor.</summary>
+    public Vendor NewVendor() => new Vendor();
+
+    /// <summary>Создаёт отраслевой реквизит (IndustryAttribute либо FiscalLine.Industry) — заполните поля и присвойте нужному свойству.</summary>
+    public Industry NewIndustry() => new Industry();
+
+    /// <summary>Создаёт дополнительный реквизит пользователя (Ккм.UserAttribute) — заполните Name/Value и присвойте Ккм.UserAttribute.</summary>
+    public UserAttribute NewUserAttribute() => new UserAttribute();
+
+    /// <summary>Создаёт операционный реквизит чека (Ккм.OperationalAttribute) — заполните поля и присвойте Ккм.OperationalAttribute.</summary>
+    public OperationalAttribute NewOperationalAttribute() => new OperationalAttribute();
+
+    /// <summary>Создаёт детальный электронный платёж — заполните поля и передайте в AddElectronicPayment(...).</summary>
+    public ElectronicPayment NewElectronicPayment() => new ElectronicPayment();
+
+    /// <summary>Создаёт данные коррекции (Ккм.CorrectionData, для чеков коррекции) — заполните поля и присвойте Ккм.CorrectionData.</summary>
+    public CorrectionData NewCorrectionData() => new CorrectionData();
+
+    /// <summary>Создаёт разбивку налогов коррекции по ставкам ФФД 1.05 (Ккм.Correction105Taxes) — заполните нужные SumTaxXX и присвойте Ккм.Correction105Taxes.</summary>
+    public Correction105Taxes NewCorrection105Taxes() => new Correction105Taxes();
+
+    /// <summary>Создаёт объект маркировки (для FiscalLine.Marking) — заполните Code (Base64 КМ) и присвойте Стр.Marking.</summary>
+    public Marking NewMarking() => new Marking();
+
+    /// <summary>Создаёт описание дробного количества (для FiscalLine.Fractional, частичное выбытие маркированного товара) — заполните Numerator/Denominator и присвойте Стр.Fractional.</summary>
+    public FractionalQuantity NewFractionalQuantity() => new FractionalQuantity();
+
+    /// <summary>Создаёт нефискальную текстовую строку — заполните Text и передайте в AddPosition(...).</summary>
+    public TextLine NewTextLine() => new TextLine();
+
+    /// <summary>Создаёт строку со штрихкодом — заполните Type/Barcode и передайте в AddPosition(...).</summary>
+    public BarcodeLine NewBarcodeLine() => new BarcodeLine();
+
+    /// <summary>Создаёт строку с изображением (Base64) — заполните Value и передайте в AddPosition(...).</summary>
+    public PictureLine NewPictureLine() => new PictureLine();
+
+    /// <summary>Создаёт разделительную линию — передайте в AddPosition(...) как есть либо задав LineStyle.</summary>
+    public SeparatorLine NewSeparatorLine() => new SeparatorLine();
+
+    /// <summary>Создаёт объект кассира общего назначения (например для FiscalizationParameters.Cashier) — заполните Name/Vatin.</summary>
+    public Cashier NewCashier() => new Cashier();
+
+    /// <summary>Создаёт параметры устройства (для AddDevice/UpdateDevice) — заполните поля и передайте методу RunAddDevice/RunUpdateDevice через соответствующее свойство.</summary>
+    public DeviceSettings NewDeviceSettings() => new DeviceSettings();
+
+    /// <summary>Создаёт настройки службы печати (для SaveServiceSettings) — заполните поля, при необходимости присвойте ProxyServerSettings через NewProxyConfig().</summary>
+    public ServiceSettings NewServiceSettings() => new ServiceSettings();
+
+    /// <summary>Создаёт учётную запись пользователя сервера ККМ (для AddUser/UpdateUser) — заполните поля.</summary>
+    public ServiceUser NewServiceUser() => new ServiceUser();
+
+    /// <summary>Создаёт настройки прокси-сервера (для ServiceSettings.ProxyServerSettings) — заполните поля и присвойте.</summary>
+    public ProxyConfig NewProxyConfig() => new ProxyConfig();
+
+    /// <summary>
+    /// Создаёт параметры шаблона печати (для AddTemplate/UpdateTemplate). Строки шаблона
+    /// добавляйте через уже готовые AddTextLine(...)/AddBarcodeLine(...)/AddPictureLine(...)/
+    /// AddSeparatorLine() прямо на возвращённом объекте.
+    /// </summary>
+    public TemplateParameters NewTemplateParameters() => new TemplateParameters();
+
+    /// <summary>Создаёт параметры шаблона чека (для AddCheckTemplate/UpdateCheckTemplate) — заполните Name и Document (см. NewCheckTemplateDocument()).</summary>
+    public CheckTemplateParameters NewCheckTemplateParameters() => new CheckTemplateParameters();
+
+    /// <summary>
+    /// Создаёт документ шаблона чека (CheckTemplateParameters.Document) — заполните нужные
+    /// поля напрямую; позиции добавляйте через уже готовые AddFiscalLine(...)/ClearPositions()/
+    /// AddElectronicPayment(decimal) на возвращённом объекте, а для Customer/Payments/
+    /// CorrectionData/IndustryAttribute/UserAttribute/OperationalAttribute.
+    /// </summary>
+    public CheckTemplateDocument NewCheckTemplateDocument() => new CheckTemplateDocument();
+
+    /// <summary>Создаёт параметры фискализации/перерегистрации ККТ (для Fiscalization) — заполните поля, при необходимости Cashier через NewCashier().</summary>
+    public FiscalizationParameters NewFiscalizationParameters() => new FiscalizationParameters();
+
+    /// <summary>Создаёт строку печатного шаблона напрямую (обычно не требуется — используйте AddTextLine/AddBarcodeLine/AddPictureLine/AddSeparatorLine на TemplateParameters).</summary>
+    public PrintLine NewPrintLine() => new PrintLine();
+
+    /// <summary>Создаёт элемент шаблона печати напрямую (обычно не требуется — см. NewPrintLine()).</summary>
+    public TemplateItem NewTemplateItem() => new TemplateItem();
 }

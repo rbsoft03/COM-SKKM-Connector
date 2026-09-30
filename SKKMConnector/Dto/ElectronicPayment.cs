@@ -40,4 +40,7 @@ public sealed class ElectronicPayment
     /// Дополнительные сведения о безналичной оплате.
     /// </summary>
     public string? AdditionalInformation { get; set; }
+
+    /// <summary>Устанавливает признак способа оплаты (см. enum ElectronicPaymentMethod) — обёртка для COM: свойство PaymentMethod объявлено как nullable enum (ElectronicPaymentMethod?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetPaymentMethod(int value) => PaymentMethod = (ElectronicPaymentMethod)value;
 }

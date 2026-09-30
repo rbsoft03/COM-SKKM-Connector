@@ -6,11 +6,17 @@
 #   but the runtime/GAC assembly is 8.0.0.5 -> redirect 0.0.0.0-8.0.0.5 -> 8.0.0.5.
 # - System.Runtime.CompilerServices.Unsafe: System.Memory references it at 4.0.4.1,
 #   but only 6.0.0.0 is installed in the GAC -> redirect 0.0.0.0-6.0.0.0 -> 6.0.0.0.
+#
+# -X86Only (used by reg_x86.bat): patch only the 32-bit machine.config.
 
-$paths = @(
-    "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\Config\machine.config",
-    "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\Config\machine.config"
+param(
+    [switch]$X86Only
 )
+
+$paths = @("$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\Config\machine.config")
+if (-not $X86Only) {
+    $paths += "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\Config\machine.config"
+}
 
 $redirects = @(
     @{ Name = "System.Text.Json"; Token = "cc7b13ffcd2ddd51"; OldVersion = "0.0.0.0-8.0.0.5"; NewVersion = "8.0.0.5" },

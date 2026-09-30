@@ -1,4 +1,5 @@
 ﻿using RBSoftSkkm.Internal;
+using System.Text;
 using System.Text.Json;
 
 namespace RBSoftSkkm;
@@ -1024,6 +1025,63 @@ public sealed partial class SkkmConnector
         if (Ok && LastResult.ValueKind == JsonValueKind.String)
             MarkingCodeRepaired = LastResult.GetString() ?? "";
 
+    }
+
+    /// <summary>
+    /// Локальное (офлайн) исправление кода маркировки — без обращения к серверу ККМ. Устраняет те же
+    /// допустимые отклонения от стандарта DataMatrix, что и <see cref="RepairMarking"/> (через сервер):
+    /// отсутствие GS, замену GS на управляющий символ или тег GS, разделители со скобками (21)/(91)/(93).
+    /// Код берётся из <see cref="MarkingCode"/>, результат — в <see cref="MarkingCodeRepaired"/>.
+    /// <see cref="ErrorCode"/>: -1 — код без криптохвоста, исправить невозможно (<see cref="Ok"/> = false);
+    /// 0 — код был и так корректен; 1 — код исправлен.
+    /// </summary>
+    public void RepairMarkingLocal()
+    {
+        var input = MarkingCode ?? "";
+        var fixedCode = FixMarkingCode(input);
+        var decoded = Gs1CodeUtility.IsBase64(fixedCode) ? Gs1CodeUtility.DecodeFromBase64(fixedCode) : fixedCode;
+
+        if (!Gs1CodeUtility.IsMarkingCodeCryptoValid(decoded))
+        {
+            Ok = false;
+            ErrorCode = -1;
+            ErrorDescription = string.IsNullOrWhiteSpace(input)
+                ? "Пустая строка"
+                : "Некорректный формат кода маркировки, исправить невозможно";
+            MarkingCodeRepaired = "";
+            return;
+        }
+
+        Ok = true;
+        if (string.Equals(fixedCode, input, StringComparison.Ordinal))
+        {
+            ErrorCode = 0;
+            ErrorDescription = "Код маркировки корректен";
+        }
+        else
+        {
+            ErrorCode = 1;
+            ErrorDescription = "Код маркировки исправлен: устранены отклонения формата";
+        }
+        MarkingCodeRepaired = fixedCode;
+    }
+
+    private static string FixMarkingCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return "";
+
+        var wasBase64 = Gs1CodeUtility.IsBase64(code);
+
+        if (!wasBase64)
+            code = Convert.ToBase64String(Encoding.UTF8.GetBytes(Gs1CodeUtility.ReplaceEscapedGsSeparators(code)));
+
+        var fixedCode = Gs1CodeUtility.RemoveBracketsFromBase64(code);
+
+        if (!wasBase64)
+            fixedCode = Gs1CodeUtility.DecodeFromBase64(fixedCode);
+
+        return fixedCode;
     }
 
     /// <summary>

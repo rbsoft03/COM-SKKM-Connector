@@ -37,4 +37,10 @@ public sealed class PictureLine : Position
     /// Высота изображения.
     /// </summary>
     public int? Height { get; set; }
+
+    /// <summary>Устанавливает ширину изображения (см. Width) — обёртка для COM: свойство объявлено как nullable int (int?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetWidth(int value) => Width = value;
+
+    /// <summary>Устанавливает высоту изображения (см. Height) — обёртка для COM: свойство объявлено как nullable int (int?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetHeight(int value) => Height = value;
 }

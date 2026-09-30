@@ -141,4 +141,28 @@ public sealed class FiscalLine : Position
     /// Дополнительный реквизит предмета расчета
     /// </summary>
     public string? AdditionalAttribute { get; set; }
+
+    // ------------------------------------------------------------------
+    // Обёртки для COM-клиентов (1С v7.7 и т.п.): классический COM (позднее
+    // связывание, IDispatch) не умеет присваивать значения nullable-enum
+    // свойствам (SignMethodCalculation?, SignCalculationObject?,
+    // MeasureOfQuantity?, AgentSign?) напрямую — присваивание падает с
+    // "Неизвестная ошибка" уже внутри .NET COM interop. Эти методы принимают
+    // обычный int и сами делают приведение к нужному enum.
+    // ------------------------------------------------------------------
+
+    /// <summary>Устанавливает признак способа расчёта (см. enum SignMethodCalculation) — обёртка для COM.</summary>
+    public void SetSignMethodCalculation(int value) => SignMethodCalculation = (SignMethodCalculation)value;
+
+    /// <summary>Устанавливает признак предмета расчёта (см. enum SignCalculationObject) — обёртка для COM.</summary>
+    public void SetSignCalculationObject(int value) => SignCalculationObject = (SignCalculationObject)value;
+
+    /// <summary>Устанавливает меру количества предмета расчёта (см. enum MeasureOfQuantity) — обёртка для COM.</summary>
+    public void SetMeasureOfQuantity(int value) => MeasureOfQuantity = (MeasureOfQuantity)value;
+
+    /// <summary>Устанавливает признак агента по предмету расчёта (см. enum AgentType) — обёртка для COM.</summary>
+    public void SetAgentSign(int value) => AgentSign = (AgentType)value;
+
+    /// <summary>Устанавливает сумму акциза (см. ExciseAmount) — обёртка для COM: свойство объявлено как nullable decimal (decimal?) и не присваивается напрямую из классического COM (IDispatch).</summary>
+    public void SetExciseAmount(decimal value) => ExciseAmount = value;
 }
